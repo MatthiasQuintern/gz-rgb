@@ -1,12 +1,13 @@
 # Glowzwiebel RGB
-RGB - Control software for my setup using OpenRGB
+RGB - control software for my setup using OpenRGB
 
 ## Features
-- define which rgb devices will be affected by which setting
-- process-watch mode: settings for certain programs, eg. blue for vim, off for mpv and rainbow for steam
-- run as daemon through systemd
-- change modes/colors at runtime by placing files, which makes it easy to integrate rgb-control into other software (eg define a polybar menu module)
+- process-watching: settings for certain programs, eg. blue for vim, off for mpv and rainbow for steam
+- change modes/colors at runtime through file-based system, which makes it easy to integrate rgb-control into other software (eg define a polybar menu module)
 - set the time at which the lights will turn on
+- define which rgb devices will be affected by which setting
+- run as daemon through systemd
+
 
 ## Configuration
 You will have to edit the constants at the top of main.hpp to configure the program to your needs.
@@ -20,9 +21,17 @@ You will have to edit the constants at the top of main.hpp to configure the prog
 - Make a *recursive* clone of this repo
 - `cd src && make && make install`
 
-## Enable with systemd
+### Enable with systemd
 - Install OpenRGB and enable `openrgb.service`
 - `systemctl daemon-realod && systemctl enable --now gz-rgb.service`
+
+## Usage
+Once started, the program will wait until the set time is reached and then activate the process watching. 
+You can also send a command to skip the waiting period or to set a custom color.
+### Sending commands 
+To send a command, create a file in `FILE_COMMAND_DIR` (defaults to `/tmp/gzrgb`). 
+The program will detect the file and run the command that is predefined in `externalCommandSettingVec`.
+To set a custom color, name the file `colorHexRRGGBB where RRGGBB is a hex rgb color code.
 
 
 ## Changelog
