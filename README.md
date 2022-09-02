@@ -9,8 +9,10 @@ RGB - Control software for my setup using OpenRGB
 - set the time at which the lights will turn on
 
 ## Installation
+- Install OpenRGB and enable `openrgb.service`
 - Make a *recursive* clone of this repo
 - `cd src && make && make install`
+- `systemctl daemon-realod && systemctl --user enable --now gz-rgb.service`
 
 
 ## Changelog

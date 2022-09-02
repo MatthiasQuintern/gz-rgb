@@ -56,7 +56,7 @@ $(OBJECT_DIRS):
 
 install:
 	install -D -m 644 $(EXEC) $(DESTDIR)/usr/bin/
-	install -D -m 644 
+	install -D -m 644 ../gz-rgb.service $(DESTDIR)/usr/lib/systemd/user/gz-rgb.service
 
 
 debug: CXXFLAGS += -g +Wextra # -DDEBUG 
