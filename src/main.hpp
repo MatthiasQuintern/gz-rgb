@@ -1,3 +1,5 @@
+#pragma once
+
 #include "queue.hpp"
 #include "rgb_controller.hpp"
 #include "log.hpp"
@@ -54,7 +56,9 @@ namespace rgb {
     const auto waitForStartDuration = 10s;
     const auto manageRGBDuration = 3s;
 
-    const std::string logfile = "gzrgb.log";
+    const std::string logfile = "/var/log/gzrgb.log";
+    const bool storeLog = false;
+    const bool showLog = true;
 
 
 

@@ -6,7 +6,7 @@
 using std::this_thread::sleep_for;
 namespace fs = std::filesystem;
 
-gz::Log rgblog(rgb::logfile, true, true, "gzrgb", gz::Color::MAGENTA);
+gz::Log rgblog(rgb::logfile, rgb::showLog, rgb::storeLog, "gzrgb", gz::Color::MAGENTA);
 
 namespace rgb {
     // 
