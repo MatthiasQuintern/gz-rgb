@@ -8,11 +8,21 @@ RGB - Control software for my setup using OpenRGB
 - change modes/colors at runtime by placing files, which makes it easy to integrate rgb-control into other software (eg define a polybar menu module)
 - set the time at which the lights will turn on
 
+## Configuration
+You will have to edit the constants at the top of main.hpp to configure the program to your needs.
+
 ## Installation
-- Install OpenRGB and enable `openrgb.service`
+### Arch Linux (ABS)
+- Download PKGBUILD: `wget https://raw.github.com/MatthiasQuintern/gz-rgb/main/PKGBUILD`
+- Make and install with pacman: `makepkg -si`
+
+### Linux
 - Make a *recursive* clone of this repo
 - `cd src && make && make install`
-- `systemctl daemon-realod && systemctl --user enable --now gz-rgb.service`
+
+## Enable with systemd
+- Install OpenRGB and enable `openrgb.service`
+- `systemctl daemon-realod && systemctl enable --now gz-rgb.service`
 
 
 ## Changelog
