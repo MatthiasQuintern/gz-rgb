@@ -121,7 +121,6 @@ namespace gz::util {
 
     template<std::swappable T>
     void Queue<T>::resize() {
-        std::cout << "resize queue\n";
         // if vector is at maxSize, "loose" the oldest element
         if (buffer.size() == maxSize) {
             incrementIndex(readIndex, buffer.size());
@@ -154,7 +153,7 @@ namespace gz::util {
             buffer[writeIndex] = t;
         }
         mtx.unlock();
-        std::cout << "queue after pushback. ri: " << readIndex << " - wi: " << writeIndex << " - size: " << buffer.size() << " - cap: " << vectorCapacity << "\n";
+        /* std::cout << "queue after pushback. ri: " << readIndex << " - wi: " << writeIndex << " - size: " << buffer.size() << " - cap: " << vectorCapacity << "\n"; */
     }
 
 
@@ -200,7 +199,6 @@ namespace gz::util {
         incrementIndex(readIndex, vectorCapacity);
         size_t i = readIndex;
         mtx.unlock();
-        std::cout << "queue after getCopy. ri: " << readIndex << " - wi: " << writeIndex << " - size: " << buffer.size() << " - cap: " << vectorCapacity << "\n";
         return std::move(buffer[i]);  /// @todo could this in some stupid edge case lead to a data race?
     }
 
