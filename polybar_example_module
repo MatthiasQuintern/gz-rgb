@@ -1,0 +1,43 @@
+[module/rgbmenu]
+type = custom/menu
+
+expand-right = true
+
+format-spacing = 1
+
+content-foreground = ${color.foreground}
+format-background = ${color.background}
+
+menu-0-0 = "color"
+menu-0-0-exec = menu-open-1
+menu-0-1 = "rainbow"
+menu-0-1-exec = touch /tmp/gzrgb/rainbow
+menu-0-2 = "auto"
+menu-0-2-exec = touch /tmp/gzrgb/process_watching
+menu-0-3 = "off"
+menu-0-3-exec = touch /tmp/gzrgb/clear
+menu-0-4 = "quit"
+menu-0-4-exec = touch /tmp/gzrgb/quit
+
+menu-1-0 = red
+menu-1-0-exec = touch /tmp/gzrgb/colorHexff0000
+menu-1-1 = orange
+menu-1-1-exec = touch /tmp/gzrgb/colorHexff4500
+menu-1-2 = yellow
+menu-1-2-exec = touch /tmp/gzrgb/colorHex8c8c00
+menu-1-3 = pink
+menu-1-3-exec = touch /tmp/gzrgb/colorHexff0066
+menu-1-4 = green
+menu-1-4-exec = touch /tmp/gzrgb/colorHex00ff00
+menu-1-5 = cyan
+menu-1-5-exec = touch /tmp/gzrgb/colorHex00bb77
+menu-1-6 = purple
+menu-1-6-exec = touch /tmp/gzrgb/colorHexa400ff
+menu-1-7 = blue
+menu-1-7-exec = touch /tmp/gzrgb/colorHex0000ff
+menu-1-8 = white
+menu-1-8-exec = touch /tmp/gzrgb/colorHexbfbfbf
+
+label-open = "rgb"
+label-close = ""
+label-separator = " | "
