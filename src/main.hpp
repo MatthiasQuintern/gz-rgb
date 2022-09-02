@@ -17,7 +17,7 @@ namespace rgb {
     //
     // SETTINGS
     //
-    /// The device types affected by this program
+    /// The default device types affected by this program
     const std::set<orgb::DeviceType> targetDeviceTypes { 
         orgb::DeviceType::Motherboard, 
         orgb::DeviceType::DRAM, 
@@ -30,7 +30,10 @@ namespace rgb {
     const std::chrono::duration stopAt {8h + 25min};
 
     /// rgb settings for when no targetet process is running
-    const RGBSetting defaultSetting { targetDeviceTypes, INSTANT, RGBMode::STATIC, orgb::Color(128, 128, 128) };
+    const RGBSetting clearSetting { targetDeviceTypes, INSTANT, RGBMode::CLEAR, orgb::Color::Black };
+    const RGBSetting idleSetting  { targetDeviceTypes, INSTANT, RGBMode::STATIC, orgb::Color(128, 128, 128) };
+
+
     /// rgb settings for each process. priority ~ index
     const std::vector<std::pair<std::string, RGBSetting>> processSettingVec {
         { "firefox",    { targetDeviceTypes, FADE,      RGBMode::STATIC,   orgb::Color(255, 128, 0) } },
@@ -44,17 +47,18 @@ namespace rgb {
     /// External commands by placing files in FILE_COMMAND_DIR
     const std::vector<std::pair<std::string, RGBSetting>> externalCommandSettingVec {
         { "colorHex",           { targetDeviceTypes, FADE,      RGBMode::STATIC,   orgb::Color::Black } },
-        { "process_watching",   defaultSetting }, 
-        { "quit",               defaultSetting },
+        { "process_watching",   idleSetting }, 
+        { "quit",               idleSetting },
         { "rainbow",            { targetDeviceTypes, INSTANT,   RGBMode::RAINBOW,   orgb::Color::Black } },
         { "clear",              { targetDeviceTypes, INSTANT,   RGBMode::CLEAR,     orgb::Color::Black } },
     };
     const std::string FILE_COMMAND_DIR = "/tmp/gzrgb";
 
     // Energy
-    const auto rgbUpdateDuration = 33ms;  // ca 30 updates per second
-    const auto waitForStartDuration = 10s;
+    const auto waitForTimeWindow = 15s;
     const auto manageRGBDuration = 3s;
+    const auto rgbUpdateDuration = 33ms;  // ca 30 updates per second
+    const auto rgbSleepCmdDuration = waitForTimeWindow - manageRGBDuration - rgbUpdateDuration;
 
     const std::string logfile = "/var/log/gzrgb.log";
     const bool storeLog = false;
@@ -100,6 +104,42 @@ namespace rgb {
             std::filesystem::path cmdDir;
             std::string colorHex = "colorHex";
             orgb::Color color;
-            
+    };
+
+
+    class App {
+        public:
+            /**
+             * @brief Creates the rgbControllerThread.
+             * @details
+             */
+            App();
+            ~App();
+            App(const App& app) = delete;
+            App& operator=(const App&) = delete;
+            /**
+             * @brief Run gz-rgb
+             * @details
+             *  It does:
+             *  - Time checking: check if the time is between startAt and stopAt, if true enable process watching
+             *  - File Watching: check if a command is sent through a created file in FILE_COMMAND_DIR
+             *  - Process Watching: check if a wanted process from process2SettingVec is running
+             *  - When necessary through one of the above, send RGBCommand through the q to the RGBController thread
+             */
+            void run();
+        private:
+            gz::util::Queue<RGBCommand> q;
+            std::thread rgbControllerThread;
+
+            static App* app;
+            /**
+             * @brief Send QUIT command and join other thread before exiting
+             */
+            static void handleSignal(int sig);
+            /**
+             * @brief Creates a RGBController and waits for commands
+             */
+            static void rgbControllerThreadFunction(gz::util::Queue<RGBCommand>* q);
+
     };
 }

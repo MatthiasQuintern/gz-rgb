@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <csignal>
 
 using std::this_thread::sleep_for;
 namespace fs = std::filesystem;
@@ -36,7 +37,7 @@ namespace rgb {
             if (timeInWindow()) {
                 waitForStart = false;
             } else {
-                sleep_for(waitForStartDuration);
+                sleep_for(waitForTimeWindow);
             }
         }
     }
@@ -108,8 +109,6 @@ namespace rgb {
         int cmdIndex = -1;
         for (const auto& entry : fs::directory_iterator(cmdDir)) {
             if (fs::is_regular_file(entry)) {
-                rgblog("FileWatcher::fileCommandReceived:", entry.path().filename().c_str());
-                rgblog(colorHex.compare(0, colorHex.size(), entry.path().filename().c_str()));
                 if (entry.path().filename().string().compare(0, colorHex.size(), colorHex) == 0) {
                     rgblog(entry.path().filename().string().substr(colorHex.size()));
                     color.fromString(entry.path().filename().string().substr(colorHex.size()));
@@ -132,19 +131,23 @@ namespace rgb {
     // 
     // RGB THREAD
     //
-    void rgbControllerThreadFunction(gz::util::Queue<RGBCommand>* q) {
+    void App::rgbControllerThreadFunction(gz::util::Queue<RGBCommand>* q) {
         RGBController controller(targetDeviceTypes);
         bool running = true;
         while (running) {
             if (q->hasElement()) {
-                auto vec = q->getInternalBuffer();
-                for (size_t i = 0; i < vec.size(); i++) {
-                    std::cout << i << " - " << to_string(vec[i].setting.color) << '\n';
-                }
+                /* auto vec = q->getInternalBuffer(); */
+                /* for (size_t i = 0; i < vec.size(); i++) { */
+                /*     std::cout << i << " - " << to_string(vec[i].setting.color) << '\n'; */
+                /* } */
 
                 RGBCommand command = q->getCopy();
                 if (command.type == RGBCommandType::QUIT) {
                     running = false;
+                } 
+                else if (command.type == RGBCommandType::SLEEP) {
+                    /* rgblog("controllerThread sleeping for", rgbSleepCmdDuration.count()); */
+                    sleep_for(rgbSleepCmdDuration);
                 }
                 else {
                     controller.changeSetting(command.setting);
@@ -157,21 +160,54 @@ namespace rgb {
 
 
     //
-    // CONTROLLER THREAD
+    // App
     //
-    void manageRGB() {
-        gz::util::Queue<RGBCommand> q(4, 20);
-        std::thread rgbControllerThread(rgbControllerThreadFunction, &q);
+    App* App::app = nullptr;
 
-        q.push_back(RGBCommand{ RGBCommandType::CHANGE_SETTING, defaultSetting });
+    void App::handleSignal(int sig) {
+        rgblog.clog(gz::Color::YELLOW, "Signal handler:", gz::Color::RESET, "Received signal", sig);
+        if (app != nullptr) {
+            app->q.emplace_back(RGBCommand{ RGBCommandType::CHANGE_SETTING, clearSetting });
+            rgblog.clog(gz::Color::YELLOW, "Signal handler:", gz::Color::RESET, "Joining thread. This might take up to", std::chrono::duration_cast<std::chrono::seconds>(rgbSleepCmdDuration).count(), "seconds.");
+            app->q.emplace_back(RGBCommand{ RGBCommandType::QUIT, idleSetting });
+            app->rgbControllerThread.join();
+            rgblog.clog(gz::Color::YELLOW, "Signal handler:", gz::Color::RESET, "Thread joined. Exiting");
+            std::exit(0);
+        } 
+        else {
+            rgblog.clog(gz::Color::YELLOW, "Signal handler:", gz::Color::RESET, "Error: Could not find running instance of App");
+            std::exit(1);
+        }
+    }
+
+
+    App::App() : q(4, 10), rgbControllerThread(rgbControllerThreadFunction, &q) {
+        rgblog("Started gz-rgb");
+        if (app != nullptr) {
+            rgblog.error("App::App(): Another instance is already created.");
+        } 
+        else {
+            app = this;
+        }
+    }
+    App::~App() {
+        app = nullptr;
+    }
+
+    void App::run() {
+        std::signal(SIGTERM, &App::handleSignal);
+        std::signal(SIGINT, &App::handleSignal);
+        q.emplace_back(RGBCommand{ RGBCommandType::CHANGE_SETTING, clearSetting });
 
         rgb::ProcessWatcher processWatcher;
         int currentProcessIndex = -1;
         int processIndex;
-        bool watchProcesses = true;
+        bool watchProcesses = false;
 
         rgb::FileWatcher fileWatcher;
         int cmdIndex = -1;
+
+        bool checkTime = true;
 
         bool running = true;
         while (running) {
@@ -179,59 +215,76 @@ namespace rgb {
                 processIndex = processWatcher.processRunning();
                 if (processIndex != currentProcessIndex) {
                     if (processIndex >= 0) {
-                        rgblog("Process Watcher: Found new running process:", processSettingVec[processIndex].first, to_string(processSettingVec[processIndex].second.color));
+                        rgblog.clog(gz::Color::YELLOW, "Process Watcher", gz::Color::RESET, "Found new running process:", processSettingVec[processIndex].first, to_string(processSettingVec[processIndex].second.color));
                         RGBCommand command { RGBCommandType::CHANGE_SETTING, processSettingVec[processIndex].second };
                         q.push_back(command);
                         currentProcessIndex = processIndex;
                     }
                     else {
-                        rgblog("Process Watcher: No wanted process found: Resetting color.");
-                        RGBCommand command { RGBCommandType::CHANGE_SETTING, defaultSetting };
+                        rgblog.clog(gz::Color::YELLOW, "Process Watcher", gz::Color::RESET, "No wanted process found: Resetting color.");
+                        RGBCommand command { RGBCommandType::CHANGE_SETTING, idleSetting };
                         q.push_back(command);
                         currentProcessIndex = -1;
                     }
                 }
             }
 
+            // watch files
             cmdIndex = fileWatcher.fileCommandReceived();
             if (cmdIndex >= 0) {
+                checkTime = false;
                 if (cmdIndex == 0) {
+                    rgblog.clog(gz::Color::CYAN, "File Watcher", gz::Color::RESET, "Setting color from hex.");
                     watchProcesses = false;
                     RGBCommand command { RGBCommandType::CHANGE_SETTING, externalCommandSettingVec[cmdIndex].second };
                     command.setting.color = fileWatcher.getColor();
-                    q.push_back(command);
-                    rgblog("File Watcher: Setting color from hex.");
+                    q.emplace_back(std::move(command));
                 }
                 else if (cmdIndex == 1) {
-                    rgblog("File Watcher: Starting process watching.");
+                    rgblog.clog(gz::Color::CYAN, "File Watcher", gz::Color::RESET, "Starting process watching.");
                     watchProcesses = true;
                     currentProcessIndex = -1;
                 }
                 else if (cmdIndex == 2) {
-                    rgblog("File Watcher: Quit command received");
+                    rgblog.clog(gz::Color::CYAN, "File Watcher", gz::Color::RESET, "Quit command received");
                     running = false;
                 }
                 else {
-                    rgblog("File Watcher:", externalCommandSettingVec[cmdIndex].first);
+                    rgblog.clog(gz::Color::CYAN, "File Watcher", gz::Color::RESET, externalCommandSettingVec[cmdIndex].first);
                     watchProcesses = false;
                     RGBCommand command { RGBCommandType::CHANGE_SETTING, externalCommandSettingVec[cmdIndex].second };
-                    q.push_back(command);
+                    q.emplace_back(std::move(command));
                 }
             }
+
+            // check time
+            if (checkTime) {
+                if (timeInWindow()) {
+                    rgblog("Now in time window - enabling process watching");
+                    checkTime = false;
+                    watchProcesses = true;
+                }
+                else {
+                    q.emplace_back(RGBCommand {RGBCommandType::SLEEP, idleSetting });
+                    std::this_thread::sleep_for(waitForTimeWindow);
+                }
+            }
+
             std::this_thread::sleep_for(manageRGBDuration);
         }  // while
 
-        q.push_back(RGBCommand{ RGBCommandType::QUIT, defaultSetting });
+        q.emplace_back(RGBCommand{ RGBCommandType::CHANGE_SETTING, clearSetting });
+        q.emplace_back(RGBCommand{ RGBCommandType::QUIT, idleSetting });
         rgbControllerThread.join();
     }
 }
 
 
 int main(int argc, char* argv[]) {
-    rgblog("Starting gzrgb");
     /* rgb::waitForStart(); */
 
-    rgb::manageRGB();
+    rgb::App app;
+    app.run();
 
     /* std::chrono::duration minute { 1min }; */
     /* for (int i = 0; i < 23; i++) { */
