@@ -1,0 +1,22 @@
+{
+  "configurations": {
+    "gze": {
+        "adapter": "vscode-cpptools",
+        "configuration": {
+          "name": "gzrgb (cpp)",
+          "type": "cppdbg",
+          "request": "launch",
+          "externalConsole": true,
+          "logging": {
+            "engineLogging": true
+          },
+          "stopOnEntry": true,
+          "stopAtEntry": true,
+          "debugOptions": [],
+          "MIMode": "gdb",
+          "cwd": "~/c++/rgb/src",
+          "program": "../gzrgb"
+        }
+    }
+  }
+}
