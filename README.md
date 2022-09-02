@@ -1,4 +1,4 @@
-# Glowzwiebel RGB
+# gz-rgb
 RGB - control software for my setup using OpenRGB
 
 ## Features
