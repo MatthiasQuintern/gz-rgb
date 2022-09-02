@@ -55,7 +55,7 @@ $(OBJECT_DIRS):
 .PHONY += install debug run clean docs 
 
 install:
-	install -D -m 644 $(EXEC) $(DESTDIR)/usr/bin/
+	install -D -m 644 $(EXEC) $(DESTDIR)/usr/bin/gz-rgb
 	install -D -m 644 ../gz-rgb.service $(DESTDIR)/usr/lib/systemd/user/gz-rgb.service
 
 

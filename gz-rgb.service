@@ -1,0 +1,14 @@
+[Unit]
+Description=Run gz-rgb daemon
+After=network.target lm_sensors.service openrgb.service
+Requires=openrgb.service
+
+[Service]
+Type=simple
+RemainAfterExit=yes
+ExecStart=/usr/bin/gz-rgb
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+
