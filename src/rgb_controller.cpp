@@ -111,7 +111,7 @@ namespace rgb {
 
 
     void RGBController::changeSetting(const RGBSetting& setting) {
-        rgblog("changeSetting", to_string(setting.color));
+        /* rgblog("changeSetting", to_string(setting.color)); */
         switch(setting.mode) {
             case RAINBOW:
                 for (orgb::Device* device : devices) {

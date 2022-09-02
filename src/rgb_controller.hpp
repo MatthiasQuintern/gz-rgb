@@ -29,7 +29,7 @@ namespace rgb {
     };
 
     enum RGBCommandType {
-        CHANGE_SETTING, QUIT
+        CHANGE_SETTING, SLEEP, QUIT
     };
     struct RGBCommand {
         RGBCommandType type;
