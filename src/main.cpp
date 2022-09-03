@@ -101,6 +101,7 @@ namespace rgb {
     FileWatcher::FileWatcher() : cmdDir(FILE_COMMAND_DIR) {
         if (!fs::is_directory(cmdDir)) {
             fs::create_directory(cmdDir);
+            fs::permissions(cmdDir, fs::perms::owner_all | fs::perms::group_all | fs::perms::others_all);
         }
     }
 
