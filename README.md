@@ -14,7 +14,7 @@ You will have to edit the constants at the top of main.hpp to configure the prog
 
 ## Installation
 ### Dependecies
-- [gz-cpp-util](https://raw.github.com/MatthiasQuintern/gz-cpp-util)
+- [gz-cpp-util](https://github.com/MatthiasQuintern/gz-cpp-util)
 
 ### Arch Linux (ABS)
 - Download PKGBUILD: `wget https://raw.github.com/MatthiasQuintern/gz-rgb/main/PKGBUILD`
