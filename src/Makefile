@@ -1,7 +1,7 @@
 CXX			= /usr/bin/g++
 CXXFLAGS	= -std=c++20 -MMD -MP
 LDFLAGS		= -L../OpenRGB-cppSDK/build
-LDLIBS 		= -lorgbsdk
+LDLIBS 		= -lorgbsdk -lgzutil
 # SRCDIRS 	= $(wildcard */)
 # IFLAGS		= $(foreach dir,$(SRCDIRS), -I$(dir))
 # IFLAGS      += $(foreach dir,$(SRCDIRS), -I../$(dir))
