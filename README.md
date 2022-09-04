@@ -13,6 +13,9 @@ RGB - control software for my setup using OpenRGB
 You will have to edit the constants at the top of main.hpp to configure the program to your needs.
 
 ## Installation
+### Dependecies
+- [gz-cpp-util](https://raw.github.com/MatthiasQuintern/gz-cpp-util)
+
 ### Arch Linux (ABS)
 - Download PKGBUILD: `wget https://raw.github.com/MatthiasQuintern/gz-rgb/main/PKGBUILD`
 - Make and install with pacman: `makepkg -si`
