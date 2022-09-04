@@ -1,5 +1,4 @@
 #include "rgb_controller.hpp"
-#include "log.hpp"
 
 #include <algorithm>
 #include <cmath>
