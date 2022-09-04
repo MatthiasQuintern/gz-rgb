@@ -1,4 +1,4 @@
-#include "log.hpp"
+#include <gz-util/log.hpp>
 
 #include "OpenRGB/Client.hpp"
 

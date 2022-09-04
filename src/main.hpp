@@ -1,8 +1,8 @@
 #pragma once
 
-#include "queue.hpp"
+#include <gz-util/container/queue.hpp>
 #include "rgb_controller.hpp"
-#include "log.hpp"
+#include <gz-util/log.hpp>
 
 #include <chrono>
 #include <filesystem>
