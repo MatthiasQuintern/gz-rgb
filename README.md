@@ -38,7 +38,10 @@ To set a custom color, name the file `colorHexRRGGBB where RRGGBB is a hex rgb c
 
 
 ## Changelog
-### 2022-09-02
+### 1.1 - 2022-09-19
+- now re-setting colors when resuming from suspend or hibernate
+- added exception handling for when OpenRGB server is not running
+### 1.0 2022-09-02
 - initial version
 
 ### Delevopement Begin 2022-08-30

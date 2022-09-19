@@ -1,7 +1,7 @@
 # Maintainer: Matthias Quintern <matthiasqui@protonmail.com>
 pkgname=gz-rgb
-pkgver=1.0
-pkgrel=2
+pkgver=1.1
+pkgrel=0
 pkgdesc="rgb control daemon"
 arch=('any')
 url="https://github.com/MatthiasQuintern/gz-rgb"
