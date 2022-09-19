@@ -38,8 +38,10 @@ namespace rgb {
     }
 
 
-    RGBController::RGBController(const std::set<orgb::DeviceType>& targetDevices)
-        : client(clientName) {
+//
+// RGBController
+//
+    void RGBController::init(const std::set<orgb::DeviceType>& targetDevices) {
         client.connectX(host, port);
         getDevices(targetDevices);
         setModes();
@@ -60,7 +62,6 @@ namespace rgb {
 
     void RGBController::setModes() {
         for (auto it = devices.begin(); it != devices.end(); it++) {
-
             const orgb::Mode* mode = (*it)->findMode("Direct");
             if (mode == nullptr) {
                 mode = (*it)->findMode("Static");
@@ -187,7 +188,13 @@ namespace rgb {
             }
 
             if (++rainbowStep > RAINBOW_STEP_COUNT) { rainbowStep = 0; }
-            
+        }
+    }
+
+
+    void RGBController::reSetSettings() {
+        for (auto& [device, colors] : deviceColors) {
+            setColor(*device, colors);
         }
     }
 

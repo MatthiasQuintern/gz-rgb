@@ -29,7 +29,7 @@ namespace rgb {
     };
 
     enum RGBCommandType {
-        CHANGE_SETTING, SLEEP, QUIT
+        CHANGE_SETTING, RESUME_FROM_HIBERNATE, SLEEP, QUIT
     };
     struct RGBCommand {
         RGBCommandType type;
@@ -53,7 +53,13 @@ namespace rgb {
 
     class RGBController {
         public:
-            RGBController(const std::set<orgb::DeviceType>& targetDevices);
+            RGBController() : client(clientName) {};
+            /**
+             * @brief Initialize the controller.
+             * @details
+             *  Connects to OpenRGB server and sets the device modes
+             */
+            void init(const std::set<orgb::DeviceType>& targetDevices);
             /**
              * Change a rgb setting. Fade and rainbow devices will be added to fadeMode or rainbowMode containers
              * and will be processed during update()
@@ -64,6 +70,13 @@ namespace rgb {
             void setColor(orgb::Device& device, orgb::Color color);
             void setColor(orgb::Device& device, std::vector<orgb::Color> colors);
 
+            /**
+             * @brief Re-set all colors for all devices.
+             * @details
+             *  Calls setColor for all devices and colors stored in deviceColors.
+             *  Useful when another program or hibernation changed to colors
+             */
+            void reSetSettings();
 
         private:
             orgb::Client client;
