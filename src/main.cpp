@@ -1,13 +1,16 @@
 #include "main.hpp"
 
+#include "OpenRGB/Exceptions.hpp"
+
 #include <filesystem>
 #include <fstream>
 #include <csignal>
 
+
 using std::this_thread::sleep_for;
 namespace fs = std::filesystem;
 
-gz::Log rgblog(rgb::logfile, rgb::showLog, rgb::storeLog, "gzrgb", gz::Color::MAGENTA);
+gz::Log rgblog(rgb::logfile, rgb::showLog, rgb::storeLog, "gz-rgb", gz::Color::MAGENTA);
 
 namespace rgb {
     // 
@@ -132,8 +135,28 @@ namespace rgb {
     // 
     // RGB THREAD
     //
-    void App::rgbControllerThreadFunction(gz::util::Queue<RGBCommand>* q) {
-        RGBController controller(targetDeviceTypes);
+    void App::rgbControllerThreadFunction(gz::util::Queue<RGBCommand>* q, std::atomic<int>* returnCode) {
+        *returnCode = -1;
+        unsigned int tries = 1;
+        RGBController controller;
+        while (tries <= MAX_TRY_TO_CONNCET) {
+            try {
+                controller.init(targetDeviceTypes);
+                break;
+            }
+            catch (orgb::Exception& e) {
+                if (tries == MAX_TRY_TO_CONNCET) {
+                    rgblog.error("Could not connect to OpenRGB server. Try [", tries, "/", MAX_TRY_TO_CONNCET, "], giving up.");
+                    *returnCode = 1;
+                    return;
+                }
+                else {
+                    rgblog.error("Could not connect to OpenRGB server. Is it running? Retrying in " + std::to_string(retryConnectDelay.count()) + "s. [", tries, "/", MAX_TRY_TO_CONNCET, "]");
+                    sleep_for(retryConnectDelay);
+                }
+            }
+            tries++;
+        }
         bool running = true;
         while (running) {
             if (q->hasElement()) {
@@ -143,20 +166,26 @@ namespace rgb {
                 /* } */
 
                 RGBCommand command = q->getCopy();
-                if (command.type == RGBCommandType::QUIT) {
-                    running = false;
-                } 
-                else if (command.type == RGBCommandType::SLEEP) {
-                    /* rgblog("controllerThread sleeping for", rgbSleepCmdDuration.count()); */
-                    sleep_for(rgbSleepCmdDuration);
-                }
-                else {
-                    controller.changeSetting(command.setting);
+                switch (command.type) {
+                    case RGBCommandType::CHANGE_SETTING:
+                        controller.changeSetting(command.setting);
+                        break;
+                    case RGBCommandType::RESUME_FROM_HIBERNATE:
+                        controller.reSetSettings();
+                        break;
+                    case RGBCommandType::SLEEP:
+                        /* rgblog("controllerThread sleeping for", rgbSleepCmdDuration.count()); */
+                        sleep_for(rgbSleepCmdDuration);
+                        break;
+                    case RGBCommandType::QUIT:
+                        running = false;
+                        break;
                 }
             }
             controller.update();
             sleep_for(rgbUpdateDuration);
         }
+        *returnCode = 0;
     }
 
 
@@ -182,7 +211,7 @@ namespace rgb {
     }
 
 
-    App::App() : q(4, 10), rgbControllerThread(rgbControllerThreadFunction, &q) {
+    App::App() : q(4, 10), rgbControllerThread(rgbControllerThreadFunction, &q, &rgbControllerThreadReturnCode) {
         rgblog("Started gz-rgb");
         if (app != nullptr) {
             rgblog.error("App::App(): Another instance is already created.");
@@ -210,6 +239,9 @@ namespace rgb {
 
         bool checkTime = true;
 
+        // for hibernation check
+        std::chrono::time_point<std::chrono::system_clock> timeAtLastExecution = std::chrono::system_clock::now();
+        
         bool running = true;
         while (running) {
             if (watchProcesses) {
@@ -266,17 +298,39 @@ namespace rgb {
                     watchProcesses = true;
                 }
                 else {
-                    q.emplace_back(RGBCommand {RGBCommandType::SLEEP, idleSetting });
+                    q.emplace_back(RGBCommand { RGBCommandType::SLEEP });
                     std::this_thread::sleep_for(waitForTimeWindow);
                 }
+            }
+
+            // check if system was suspended or hibernated
+            if (checkForHibernate) {
+                auto now = std::chrono::system_clock::now();
+                if (now - timeAtLastExecution > hibernateTimeThreshold) {
+                    rgblog("Resume from hibernation detected.");
+                    q.emplace_back(RGBCommand { RGBCommandType::RESUME_FROM_HIBERNATE });
+                }
+                timeAtLastExecution = std::move(now);
+            }
+
+            // check if the rgbControllerThread exited
+            if (rgbControllerThreadReturnCode >= 0) {
+                rgblog.error("rgbControllerThread has exited with code", rgbControllerThreadReturnCode, "- Exiting.");
+                exit(1);
             }
 
             std::this_thread::sleep_for(manageRGBDuration);
         }  // while
 
+        exit(0);
+    }
+
+
+    void App::exit(int exitcode) {
         q.emplace_back(RGBCommand{ RGBCommandType::CHANGE_SETTING, clearSetting });
         q.emplace_back(RGBCommand{ RGBCommandType::QUIT, idleSetting });
         rgbControllerThread.join();
+        std::exit(exitcode);
     }
 }
 
@@ -292,5 +346,5 @@ int main(int argc, char* argv[]) {
     /*     auto minutes = minute * 60 * i; */
     /*     std::cout << i << " - " << rgb::timeInWindow(minutes) << '\n'; */
     /* } */
-    return 0;
+    return 2;
 }

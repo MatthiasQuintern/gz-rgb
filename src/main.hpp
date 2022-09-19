@@ -1,7 +1,8 @@
 #pragma once
 
-#include <gz-util/container/queue.hpp>
 #include "rgb_controller.hpp"
+
+#include <gz-util/container/queue.hpp>
 #include <gz-util/log.hpp>
 
 #include <chrono>
@@ -25,6 +26,7 @@ namespace rgb {
         /* orgb::DeviceType::Keyboard */
     };
 
+    // START TIME
     /// when to start and stop the rgb lighting. these must be in utc-0
     const std::chrono::duration startAt {18h + 30min};
     const std::chrono::duration stopAt {8h + 25min};
@@ -54,15 +56,30 @@ namespace rgb {
     };
     const std::string FILE_COMMAND_DIR = "/tmp/gzrgb";
 
-    // Energy
+    // ENERGY CONSUMPTION vs RESPONSIVENESS
+    /// How long to sleep while waiting for the time window (main thread)
     const auto waitForTimeWindow = 15s;
+    /// How long to sleep while active (main thread)
     const auto manageRGBDuration = 3s;
+    /// How long to sleep between updates to rgb lighting (rgb controller thread)
     const auto rgbUpdateDuration = 33ms;  // ca 30 updates per second
     const auto rgbSleepCmdDuration = waitForTimeWindow - manageRGBDuration - rgbUpdateDuration;
 
+    // HIBERNATION
+    // resend the last command when coming out of hibernate
+    const bool checkForHibernate = true;
+    const auto hibernateTimeThreshold = (manageRGBDuration + waitForTimeWindow) * 1.1;
+
+    // LOG
     const std::string logfile = "/var/log/gzrgb.log";
-    const bool storeLog = false;
+    const bool storeLog = true;
     const bool showLog = true;
+
+    // ERROR
+    const unsigned int MAX_TRY_TO_CONNCET = 5;
+    const auto retryConnectDelay = 5s;
+
+    
 
 
 
@@ -131,6 +148,11 @@ namespace rgb {
             gz::util::Queue<RGBCommand> q;
             std::thread rgbControllerThread;
 
+            /// join rgbControllerThread ans exit
+            void exit(int exitcode);
+
+            std::atomic<int> rgbControllerThreadReturnCode = 0;
+
             static App* app;
             /**
              * @brief Send QUIT command and join other thread before exiting
@@ -138,8 +160,9 @@ namespace rgb {
             static void handleSignal(int sig);
             /**
              * @brief Creates a RGBController and waits for commands
+             * @param q: The q with commands to send to the controller
+             * @param returnCode: A code that is >= 0 when the function exits, and -1 while running 
              */
-            static void rgbControllerThreadFunction(gz::util::Queue<RGBCommand>* q);
-
+            static void rgbControllerThreadFunction(gz::util::Queue<RGBCommand>* q, std::atomic<int>* returnCode);
     };
 }
