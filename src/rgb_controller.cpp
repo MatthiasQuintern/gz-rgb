@@ -4,15 +4,6 @@
 #include <cmath>
 
 namespace rgb {
-    std::string to_string(const orgb::Color& color) {
-        std::string s;
-        s.reserve(12);
-        s += std::to_string(color.r);
-        s += "-" + std::to_string(color.g);
-        s += "-" + std::to_string(color.b);
-        return s;
-    }
-
     bool isSameColor(const orgb::Color& color1, const orgb::Color& color2) {
         return color1.r == color2.r and color1.g == color2.g and color1.b == color2.b;
     }

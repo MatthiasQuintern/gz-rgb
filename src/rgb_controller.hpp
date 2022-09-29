@@ -1,11 +1,27 @@
-#include <gz-util/log.hpp>
+#pragma once 
+
+#include "OpenRGB/DeviceInfo.hpp"
+#include "rgb_command.hpp"
 
 #include "OpenRGB/Client.hpp"
 
+#include <gz-util/log.hpp>
+
 #include <unordered_map>
 #include <map>
-
 #include <set>
+
+#include <gz-util/util/string_conversion.hpp>
+
+// TODO remove
+/* static_assert(gz::ConstructibleFromString<rgb::RGBSetting>, "error"); */
+/* static_assert(gz::ConvertibleToString<orgb::DeviceType>, "error"); */
+/* static_assert(gz::util::ConvertibleToStringGlobal<rgb::RGBSetting>, "error"); */
+/* static_assert(gz::util::ConvertibleToStringGlobal<orgb::DeviceType>, "error"); */
+/* static_assert(gz::ConvertibleToString<rgb::RGBSetting>, "error"); */
+/* static_assert(gz::ConvertibleToString<orgb::DeviceType>, "error"); */
+/* static_assert(gz::StringConvertible<rgb::RGBSetting>, "error"); */
+
 
 extern gz::Log rgblog;
 
@@ -14,30 +30,6 @@ namespace rgb {
     const std::string host = "127.0.0.1";
     const uint16_t port = 6742;
     const std::string clientName = "gzrgb";
-
-    enum RGBMode {
-        RAINBOW, STATIC, CLEAR
-    };
-    enum RGBTransition {
-        FADE, INSTANT,
-    };
-    struct RGBSetting {
-        std::set<orgb::DeviceType> targetDevices;
-        RGBTransition transition;
-        RGBMode mode;
-        orgb::Color color;
-    };
-
-    enum RGBCommandType {
-        CHANGE_SETTING, RESUME_FROM_HIBERNATE, SLEEP, QUIT
-    };
-    struct RGBCommand {
-        RGBCommandType type;
-        RGBSetting setting;
-    };
-
-
-    std::string to_string(const orgb::Color& color);
 
     // fade
     bool isSameColor(const orgb::Color& color1, const orgb::Color& color2);
