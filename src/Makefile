@@ -52,11 +52,12 @@ $(OBJECT_DIRS):
 # Extra Options
 #
 # with debug flags
-.PHONY += install debug run clean docs 
+.PHONY += install debug run clean clean_all docs 
 
 install:
 	install -D -m 751 $(EXEC) $(DESTDIR)/usr/bin/gz-rgb
 	install -D -m 644 ../gz-rgb.service $(DESTDIR)/usr/lib/systemd/system/gz-rgb.service
+	install -D -m 644 ../gz-rgb.conf $(DESTDIR)/usr/share/gz-rgb/gz-rgb.conf
 
 
 debug: CXXFLAGS += -g +Wextra # -DDEBUG 
@@ -72,6 +73,7 @@ run: default
 clean:
 	-rm -r $(OBJECT_DIR)
 	-rm $(EXEC)
+clean_all: clean
 	-rm -r ../OpenRGB-cppSDK/build
 
 docs:

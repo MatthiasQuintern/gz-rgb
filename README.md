@@ -10,7 +10,9 @@ RGB - control software for my setup using OpenRGB
 
 
 ## Configuration
-You will have to edit the constants at the top of main.hpp to configure the program to your needs.
+You can set rgb settings for your programs in `/etc/gz-rgb.conf`.
+You can start by coping the sample configuration file: `cp /usr/share/gz-rgb/gz-rgb.conf /etc/gz-rgb.conf`.
+Some settings, like the responsiveness can only be edited by changing constants in `main.hpp`, but you probably won't need those.
 
 ## Installation
 ### Dependecies
@@ -38,10 +40,12 @@ To set a custom color, name the file `colorHexRRGGBB where RRGGBB is a hex rgb c
 
 
 ## Changelog
+### 1.2 - 2022-09-29
+- settings can now be changed in config file
 ### 1.1 - 2022-09-19
 - now re-setting colors when resuming from suspend or hibernate
 - added exception handling for when OpenRGB server is not running
-### 1.0 2022-09-02
+### 1.0 - 2022-09-02
 - initial version
 
 ### Delevopement Begin 2022-08-30
