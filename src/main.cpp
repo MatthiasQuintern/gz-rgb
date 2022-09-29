@@ -1,10 +1,15 @@
 #include "main.hpp"
 
 #include "OpenRGB/Exceptions.hpp"
+#include "rgb_command.hpp"
 
 #include <filesystem>
 #include <fstream>
 #include <csignal>
+#include <gz-util/file_io.hpp>
+#include <gz-util/settings_manager.hpp>
+#include <gz-util/util/string.hpp>
+#include <unordered_map>
 
 
 using std::this_thread::sleep_for;
@@ -49,18 +54,21 @@ namespace rgb {
     //
     // PROCESS WATCHER
     //
-    ProcessWatcher::ProcessWatcher() {
-        for (size_t i = 0; i < processSettingVec.size(); i++) {
-            process2index[processSettingVec[i].first] = i;
+    ProcessWatcher::ProcessWatcher(const std::vector<std::pair<std::string, std::string>>& settings) {
+        size_t i = 0;
+        for (auto it = settings.begin(); it != settings.end(); it++) {
+            process2index[it->first] = i;
+            i++;
         }
     }
 
 
-    int ProcessWatcher::processRunning() {
+    std::unordered_map<std::string, int>::const_iterator ProcessWatcher::processRunning() {
         fs::path proc("/proc");
         fs::path status("status");
         std::string name;
         name.reserve(16);
+        std::unordered_map<std::string, int>::const_iterator it = process2index.end();
         int pid;
         int processIndex = -1;
         for (const auto& entry : fs::directory_iterator(proc)) {
@@ -76,7 +84,6 @@ namespace rgb {
             }
             std::ifstream cmdlineFile(entry.path() / status);
             getline(cmdlineFile, name);
-            /* std::cout << "pid " << pid << " - name " << name << '\n'; */
             if (name.empty()) {
                 checkedPIDs.insert(pid);
                 continue;
@@ -85,8 +92,10 @@ namespace rgb {
             name.erase(0, 6);
             if (process2index.contains(name)) {
                 /* rgblog("processRunning: Found process", name); */
+                // check priorities
                 if (processIndex < 0 or (process2index[name] > processIndex)) {
                     processIndex = process2index[name];
+                    it = process2index.find(name);
                 }
             }
             else {
@@ -94,7 +103,7 @@ namespace rgb {
             }
         }
         /* rgblog("processRunning: Returning", processIndex, process2SettingVec[processIndex].first); */
-        return processIndex;
+        return it;
     }
 
 
@@ -135,7 +144,7 @@ namespace rgb {
     // 
     // RGB THREAD
     //
-    void App::rgbControllerThreadFunction(gz::util::Queue<RGBCommand>* q, std::atomic<int>* returnCode) {
+    void App::rgbControllerThreadFunction(gz::Queue<RGBCommand>* q, std::atomic<int>* returnCode) {
         *returnCode = -1;
         unsigned int tries = 1;
         RGBController controller;
@@ -211,8 +220,9 @@ namespace rgb {
     }
 
 
-    App::App() : q(4, 10), rgbControllerThread(rgbControllerThreadFunction, &q, &rgbControllerThreadReturnCode) {
+    App::App(gz::SettingsManagerCreateInfo& smCI) : settings(smCI), q(4, 10), rgbControllerThread(rgbControllerThreadFunction, &q, &rgbControllerThreadReturnCode) {
         rgblog("Started gz-rgb");
+        /* rgblog("Settings:", settings); */
         if (app != nullptr) {
             rgblog.error("App::App(): Another instance is already created.");
         } 
@@ -227,11 +237,13 @@ namespace rgb {
     void App::run() {
         std::signal(SIGTERM, &App::handleSignal);
         std::signal(SIGINT, &App::handleSignal);
-        q.emplace_back(RGBCommand{ RGBCommandType::CHANGE_SETTING, clearSetting });
+        q.emplace_back(RGBCommand{ RGBCommandType::CHANGE_SETTING, settings.getOr<RGBSetting>("clearSetting", clearSetting) });
 
-        rgb::ProcessWatcher processWatcher;
-        int currentProcessIndex = -1;
-        int processIndex;
+        auto settingsVector = gz::readKeyValueFile<std::vector<std::pair<std::string, std::string>>>(CONFIG_FILE);
+        rgb::ProcessWatcher processWatcher(settingsVector);
+
+        auto currentProcessNameIt = processWatcher.end();
+        auto processNameIt = processWatcher.end();
         bool watchProcesses = false;
 
         rgb::FileWatcher fileWatcher;
@@ -245,19 +257,31 @@ namespace rgb {
         bool running = true;
         while (running) {
             if (watchProcesses) {
-                processIndex = processWatcher.processRunning();
-                if (processIndex != currentProcessIndex) {
-                    if (processIndex >= 0) {
-                        rgblog.clog(gz::Color::YELLOW, "Process Watcher", gz::Color::RESET, "Found new running process:", processSettingVec[processIndex].first, to_string(processSettingVec[processIndex].second.color));
-                        RGBCommand command { RGBCommandType::CHANGE_SETTING, processSettingVec[processIndex].second };
+                processNameIt = processWatcher.processRunning();
+                if (processNameIt != currentProcessNameIt) {
+                    if (processNameIt != processWatcher.end()) {
+                        rgblog.clog(gz::Color::YELLOW, "Process Watcher", gz::Color::RESET, "Found new running process:", processNameIt->first);
+                        RGBCommand command;
+                        try {
+                            command = { RGBCommandType::CHANGE_SETTING, settings.get<RGBSetting>(processNameIt->first) };
+                        }
+                        catch(gz::InvalidArgument& e) {
+                            rgblog.error("Could not find setting for process: '" + processNameIt->first + "'. Using idleSetting.");
+                            command = { RGBCommandType::CHANGE_SETTING, settings.getOr<RGBSetting>("idleSetting", idleSetting) };
+                        }
+                        catch(gz::InvalidType& e) {
+                            rgblog.error("An error occured while trying to get setting for process: '" + processNameIt->first + "'. Using idleSetting. Error:", e.what());
+                            command = { RGBCommandType::CHANGE_SETTING, settings.getOr<RGBSetting>("idleSetting", idleSetting) };
+                        }
+
                         q.push_back(command);
-                        currentProcessIndex = processIndex;
+                        currentProcessNameIt = processNameIt;
                     }
                     else {
                         rgblog.clog(gz::Color::YELLOW, "Process Watcher", gz::Color::RESET, "No wanted process found: Resetting color.");
-                        RGBCommand command { RGBCommandType::CHANGE_SETTING, idleSetting };
+                        RGBCommand command { RGBCommandType::CHANGE_SETTING, settings.getOr<RGBSetting>("idleSetting", idleSetting) };
                         q.push_back(command);
-                        currentProcessIndex = -1;
+                        currentProcessNameIt = processWatcher.end();
                     }
                 }
             }
@@ -276,7 +300,7 @@ namespace rgb {
                 else if (cmdIndex == 1) {
                     rgblog.clog(gz::Color::CYAN, "File Watcher", gz::Color::RESET, "Starting process watching.");
                     watchProcesses = true;
-                    currentProcessIndex = -1;
+                    currentProcessNameIt = processWatcher.end();
                 }
                 else if (cmdIndex == 2) {
                     rgblog.clog(gz::Color::CYAN, "File Watcher", gz::Color::RESET, "Quit command received");
@@ -337,8 +361,17 @@ namespace rgb {
 
 int main(int argc, char* argv[]) {
     /* rgb::waitForStart(); */
+    gz::SettingsManagerCreateInfo smCI{};
+    smCI.initialValues = {
+        // rgb stuff
+        { "clearSetting", gz::toString(rgb::clearSetting) },
+        { "idleSetting", gz::toString(rgb::idleSetting) },
+        /* { "FILE_COMMAND_DIR", rgb::FILE_COMMAND_DIR }, */
+    };
+    smCI.filepath = rgb::CONFIG_FILE;
+    smCI.readFileOnCreation = true;
 
-    rgb::App app;
+    rgb::App app(smCI);
     app.run();
 
     /* std::chrono::duration minute { 1min }; */
