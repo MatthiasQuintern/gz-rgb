@@ -239,7 +239,13 @@ namespace rgb {
         std::signal(SIGINT, &App::handleSignal);
         q.emplace_back(RGBCommand{ RGBCommandType::CHANGE_SETTING, settings.getOr<RGBSetting>("clearSetting", clearSetting) });
 
-        auto settingsVector = gz::readKeyValueFile<std::vector<std::pair<std::string, std::string>>>(CONFIG_FILE);
+        std::vector<std::pair<std::string, std::string>> settingsVector;
+        try {
+            settingsVector = gz::readKeyValueFile<std::vector<std::pair<std::string, std::string>>>(CONFIG_FILE);
+        }
+        catch (gz::FileIOError& e) {
+            rgblog.error("Could not read settings, an error occured: '" + std::string(e.what()) + "'.");
+        }
         rgb::ProcessWatcher processWatcher(settingsVector);
 
         auto currentProcessNameIt = processWatcher.end();
