@@ -41,7 +41,7 @@ To set a custom color, name the file `colorHexRRGGBB where RRGGBB is a hex rgb c
 
 ## Changelog
 ### 1.2.1 2022-11-11
-- now using [gz-cpp-util](https://github.com/MatthiasQuintern/gz-cpp-util) 1.3
+- now using [gz-cpp-util](https://github.com/MatthiasQuintern/gz-cpp-util) 1.3.5
 ### 1.2 - 2022-09-29
 - settings can now be changed in config file
 ### 1.1 - 2022-09-19
