@@ -7,11 +7,10 @@
 #include <gz-util/settings_manager.hpp>
 #include <gz-util/log.hpp>
 
-
 #include <chrono>
 #include <filesystem>
 #include <functional>
-#include <gz-util/util/string.hpp>
+#include <gz-util/string/utility.hpp>
 #include <thread>
 #include <unordered_map>
 #include <set>
@@ -135,7 +134,7 @@ namespace rgb {
              * @brief Creates the rgbControllerThread.
              * @details
              */
-            App(gz::SettingsManagerCreateInfo& smCI);
+            App(gz::SettingsManagerCreateInfo<RGBSetting>& smCI);
             ~App();
             App(const App& app) = delete;
             App& operator=(const App&) = delete;

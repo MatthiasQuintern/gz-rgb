@@ -8,14 +8,22 @@
 #include <csignal>
 #include <gz-util/file_io.hpp>
 #include <gz-util/settings_manager.hpp>
-#include <gz-util/util/string.hpp>
+#include <gz-util/string/utility.hpp>
 #include <unordered_map>
 
 
 using std::this_thread::sleep_for;
 namespace fs = std::filesystem;
 
-gz::Log rgblog(rgb::logfile, rgb::showLog, rgb::storeLog, "gz-rgb", gz::Color::MAGENTA);
+gz::Log rgblog(gz::LogCreateInfo{
+        .logfile = rgb::logfile,
+        .showLog = rgb::showLog,
+        .storeLog = rgb::storeLog,
+        .prefix = "gz-rgb",
+        .prefixColor = gz::Color::MAGENTA,
+        .showTime = true,
+        .clearLogfileOnRestart = true,
+        });
 
 namespace rgb {
     // 
@@ -204,23 +212,23 @@ namespace rgb {
     App* App::app = nullptr;
 
     void App::handleSignal(int sig) {
-        rgblog.clog(gz::Color::YELLOW, "Signal handler:", gz::Color::RESET, "Received signal", sig);
+        rgblog.clog({ gz::Color::YELLOW, gz::Color::RESET }, "Signal handler:", "Received signal", sig);
         if (app != nullptr) {
             app->q.emplace_back(RGBCommand{ RGBCommandType::CHANGE_SETTING, clearSetting });
-            rgblog.clog(gz::Color::YELLOW, "Signal handler:", gz::Color::RESET, "Joining thread. This might take up to", std::chrono::duration_cast<std::chrono::seconds>(rgbSleepCmdDuration).count(), "seconds.");
+            rgblog.clog({ gz::Color::YELLOW, gz::Color::RESET }, "Signal handler:", "Joining thread. This might take up to", std::chrono::duration_cast<std::chrono::seconds>(rgbSleepCmdDuration).count(), "seconds.");
             app->q.emplace_back(RGBCommand{ RGBCommandType::QUIT, idleSetting });
             app->rgbControllerThread.join();
-            rgblog.clog(gz::Color::YELLOW, "Signal handler:", gz::Color::RESET, "Thread joined. Exiting");
+            rgblog.clog({ gz::Color::YELLOW, gz::Color::RESET }, "Signal handler:", "Thread joined. Exiting");
             std::exit(0);
         } 
         else {
-            rgblog.clog(gz::Color::YELLOW, "Signal handler:", gz::Color::RESET, "Error: Could not find running instance of App");
+            rgblog.clog({ gz::Color::YELLOW, gz::Color::RESET }, "Signal handler:", "Error: Could not find running instance of App");
             std::exit(1);
         }
     }
 
 
-    App::App(gz::SettingsManagerCreateInfo& smCI) : settings(smCI), q(4, 10), rgbControllerThread(rgbControllerThreadFunction, &q, &rgbControllerThreadReturnCode) {
+    App::App(gz::SettingsManagerCreateInfo<RGBSetting>& smCI) : settings(smCI), q(4, 10), rgbControllerThread(rgbControllerThreadFunction, &q, &rgbControllerThreadReturnCode) {
         rgblog("Started gz-rgb");
         /* rgblog("Settings:", settings); */
         if (app != nullptr) {
@@ -266,7 +274,7 @@ namespace rgb {
                 processNameIt = processWatcher.processRunning();
                 if (processNameIt != currentProcessNameIt) {
                     if (processNameIt != processWatcher.end()) {
-                        rgblog.clog(gz::Color::YELLOW, "Process Watcher", gz::Color::RESET, "Found new running process:", processNameIt->first);
+                        rgblog.clog({ gz::Color::YELLOW, gz::Color::RESET }, "Process Watcher", "Found new running process:", processNameIt->first);
                         RGBCommand command;
                         try {
                             command = { RGBCommandType::CHANGE_SETTING, settings.get<RGBSetting>(processNameIt->first) };
@@ -284,7 +292,7 @@ namespace rgb {
                         currentProcessNameIt = processNameIt;
                     }
                     else {
-                        rgblog.clog(gz::Color::YELLOW, "Process Watcher", gz::Color::RESET, "No wanted process found: Resetting color.");
+                        rgblog.clog({ gz::Color::YELLOW, gz::Color::RESET }, "Process Watcher", "No wanted process found: Resetting color.");
                         RGBCommand command { RGBCommandType::CHANGE_SETTING, settings.getOr<RGBSetting>("idleSetting", idleSetting) };
                         q.push_back(command);
                         currentProcessNameIt = processWatcher.end();
@@ -297,23 +305,23 @@ namespace rgb {
             if (cmdIndex >= 0) {
                 checkTime = false;
                 if (cmdIndex == 0) {
-                    rgblog.clog(gz::Color::CYAN, "File Watcher", gz::Color::RESET, "Setting color from hex.");
+                    rgblog.clog({ gz::Color::CYAN, gz::Color::RESET }, "File Watcher", "Setting color from hex.");
                     watchProcesses = false;
                     RGBCommand command { RGBCommandType::CHANGE_SETTING, externalCommandSettingVec[cmdIndex].second };
                     command.setting.color = fileWatcher.getColor();
                     q.emplace_back(std::move(command));
                 }
                 else if (cmdIndex == 1) {
-                    rgblog.clog(gz::Color::CYAN, "File Watcher", gz::Color::RESET, "Starting process watching.");
+                    rgblog.clog({ gz::Color::CYAN, gz::Color::RESET }, "File Watcher", "Starting process watching.");
                     watchProcesses = true;
                     currentProcessNameIt = processWatcher.end();
                 }
                 else if (cmdIndex == 2) {
-                    rgblog.clog(gz::Color::CYAN, "File Watcher", gz::Color::RESET, "Quit command received");
+                    rgblog.clog({ gz::Color::CYAN, gz::Color::RESET }, "File Watcher", "Quit command received");
                     running = false;
                 }
                 else {
-                    rgblog.clog(gz::Color::CYAN, "File Watcher", gz::Color::RESET, externalCommandSettingVec[cmdIndex].first);
+                    rgblog.clog({ gz::Color::CYAN, gz::Color::RESET }, "File Watcher", externalCommandSettingVec[cmdIndex].first);
                     watchProcesses = false;
                     RGBCommand command { RGBCommandType::CHANGE_SETTING, externalCommandSettingVec[cmdIndex].second };
                     q.emplace_back(std::move(command));
@@ -367,7 +375,7 @@ namespace rgb {
 
 int main(int argc, char* argv[]) {
     /* rgb::waitForStart(); */
-    gz::SettingsManagerCreateInfo smCI{};
+    gz::SettingsManagerCreateInfo<rgb::RGBSetting> smCI{};
     smCI.initialValues = {
         // rgb stuff
         { "clearSetting", gz::toString(rgb::clearSetting) },

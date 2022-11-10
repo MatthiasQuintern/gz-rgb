@@ -11,7 +11,7 @@
 #include <map>
 #include <set>
 
-#include <gz-util/util/string_conversion.hpp>
+#include <gz-util/string/conversion.hpp>
 
 // TODO remove
 /* static_assert(gz::ConstructibleFromString<rgb::RGBSetting>, "error"); */

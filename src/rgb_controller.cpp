@@ -42,7 +42,7 @@ namespace rgb {
     void RGBController::getDevices(const std::set<orgb::DeviceType>& targetDevices) {
         deviceList = client.requestDeviceListX();
         for (auto it = deviceList.begin(); it != deviceList.end(); it++) {
-            rgblog.clog(gz::Color::BLUE, "Found device", gz::Color::RESET, orgb::enumString(it->type), it->vendor, it->name, "Zones:", it->zones.size(), "Leds:", it->leds.size(), "Colors:", it->colors.size());
+            rgblog.clog({ gz::Color::BLUE, gz::Color::RESET }, "Found device", orgb::enumString(it->type), it->vendor, it->name, "Zones:", it->zones.size(), "Leds:", it->leds.size(), "Colors:", it->colors.size());
             if (targetDevices.contains(it->type)) {
                 devices.push_back(&(*it));
                 deviceColors[&(*it)] = it->colors;

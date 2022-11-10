@@ -1,10 +1,11 @@
 #pragma once
 
+#ifdef GZ_UTIL_STRING_CONCEPTS
+    static_assert(false, "gz-util/string/conversion.hpp must not be included before rgb_command.hpp!");
+#endif
+
 #include "OpenRGB/Client.hpp"
 #include "OpenRGB/DeviceInfo.hpp"
-
-/* #include <gz-util/util/string_conversion.hpp> */
-/* #include <gz-util/util/string_concepts.hpp> */
 
 #include <string>
 #include <set>

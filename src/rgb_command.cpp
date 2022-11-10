@@ -2,8 +2,8 @@
 #include "OpenRGB/Color.hpp"
 #include "OpenRGB/DeviceInfo.hpp"
 
-#include <gz-util/util/string.hpp>
-#include <gz-util/util/string_conversion.hpp>
+#include <gz-util/string/conversion.hpp>
+#include <gz-util/string/utility.hpp>
 #include <gz-util/exceptions.hpp>
 
 #include <cstdint>
